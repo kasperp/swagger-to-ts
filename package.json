@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/manifoldco/swagger-to-ts.git"
+    "url": "git+https://github.com/kasperp/swagger-to-ts.git"
   },
   "keywords": [
     "swagger",
@@ -23,9 +23,9 @@
   "author": "drew@pow.rs",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/manifoldco/swagger-to-ts/issues"
+    "url": "https://github.com/kasperp/swagger-to-ts/issues"
   },
-  "homepage": "https://github.com/manifoldco/swagger-to-ts#readme",
+  "homepage": "https://github.com/kasperp/swagger-to-ts#readme",
   "@pika/pack": {
     "pipeline": [
       [
