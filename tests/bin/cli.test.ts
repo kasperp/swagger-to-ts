@@ -6,8 +6,14 @@ import { execSync } from 'child_process'
 // v3/index.test.ts. So this file is mainly for testing other flags.
 
 describe('cli', () => {
+  beforeAll(() => {
+    if (!fs.existsSync(path.resolve(__dirname, 'generated'))) {
+      fs.mkdirSync(path.resolve(__dirname, 'generated'))
+    }
+  })
+
   it('--prettier-config (JSON)', () => {
-    execSync(`../../pkg/bin/cli.js specs/petstore.yaml -o generated/petstore.ts --prettier-config .prettierrc`, {
+    execSync(`node ../../pkg/bin/cli.js specs/petstore.yaml -o generated/petstore.ts --prettier-config .prettierrc`, {
       cwd: path.resolve(__dirname),
     })
     expect(fs.readFileSync(path.resolve(__dirname, 'expected/petstore.ts'), 'utf8')).toBe(
@@ -16,7 +22,7 @@ describe('cli', () => {
   })
 
   it('--prettier-config (.js)', () => {
-    execSync(`../../pkg/bin/cli.js specs/petstore.yaml -o generated/petstore.ts --prettier-config prettier.config.js`, {
+    execSync(`node ../../pkg/bin/cli.js specs/petstore.yaml -o generated/petstore.ts --prettier-config prettier.config.js`, {
       cwd: path.resolve(__dirname),
     })
     expect(fs.readFileSync(path.resolve(__dirname, 'expected/petstore.ts'), 'utf8')).toBe(

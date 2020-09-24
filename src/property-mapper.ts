@@ -1,8 +1,4 @@
-import {
-  OpenAPI2SchemaObject,
-  OpenAPI3SchemaObject,
-  SwaggerToTSOptions,
-} from "./types";
+import { OpenAPI3SchemaObject, SwaggerToTSOptions } from "./types";
 import { fromEntries } from "./utils";
 
 export default function propertyMapper<T = any>(
@@ -13,7 +9,7 @@ export default function propertyMapper<T = any>(
     return schema;
   }
 
-  return JSON.parse(JSON.stringify(schema), (_, node: OpenAPI2SchemaObject) => {
+  return JSON.parse(JSON.stringify(schema), (_, node: OpenAPI3SchemaObject) => {
     // if no properties, skip
     if (!node.properties) {
       return node;
@@ -22,12 +18,7 @@ export default function propertyMapper<T = any>(
     // map over properties, transforming if needed
     node.properties = fromEntries(
       Object.entries(node.properties).map(([key, val]) => {
-        // if $ref, skip
-        if (val.$ref) {
-          return [key, val];
-        }
-
-        const schemaObject = val as OpenAPI2SchemaObject | OpenAPI3SchemaObject;
+        const schemaObject = val as OpenAPI3SchemaObject;
 
         const property = transform(schemaObject, {
           interfaceType: schemaObject.type as string,
@@ -55,7 +46,7 @@ export default function propertyMapper<T = any>(
           },
         ];
       })
-    ) as OpenAPI2SchemaObject["properties"];
+    ) as OpenAPI3SchemaObject["properties"];
 
     return node; // return by default
   });

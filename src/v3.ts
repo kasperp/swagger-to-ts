@@ -9,6 +9,7 @@ import {
   tsPartial,
   tsUnionOf,
   tsTupleOf,
+  typeName,
 } from "./utils";
 
 export const PRIMITIVES: { [key: string]: "boolean" | "string" | "number" } = {
@@ -116,14 +117,12 @@ export default function generateTypesV3(
         output += comment(value.description);
       }
 
-      // 2. name (with “?” if optional property)
+      // 2 name (with “?” if optional property)
       output += `"${key}"${!required || !required.includes(key) ? "?" : ""}: `;
-
       // 3. open nullable
       if (value.nullable) {
         output += "(";
       }
-
       // 4. transform
       output += transform(value);
 
@@ -139,22 +138,65 @@ export default function generateTypesV3(
     return output;
   }
 
-  const schemas = `schemas: {
-    ${createKeys(propertyMapped, Object.keys(propertyMapped))}
-  }`;
+  function createTypes(obj: { [key: string]: any }) {
+    let output = "";
+
+    Object.entries(obj).forEach(([key, value]) => {
+      if (value.description) {
+        output += comment(value.description);
+      }
+      output += `export type ${typeName(key)} = `;
+      if (value.type === "object") {
+        output += value.allOf
+          ? transform(value)
+          : value.properties
+          ? `{${createKeys(value.properties, Object.keys(obj))}}`
+          : "";
+      } else {
+        output += transform(value);
+      }
+      output += "\n";
+    });
+    return output;
+  }
+
+  function createDiscriminators(obj: { [key: string]: any }) {
+    let output = "";
+
+    Object.entries(obj)
+      .filter(([key, value]) => value.discriminator)
+      .forEach(([key, value]) => {
+        //
+        // Generate discriminator functions like this
+        //
+        // function isX(s: T): s is X {
+        //   return s.discriminatorField === discriminatorValue;
+        // }
+        Object.entries(value.discriminator.mapping || {}).forEach(
+          ([dKey, dValue]) => {
+            const typeName = transformRef(dValue as string);
+            output += `export function is${typeName}(t: ${key}): t is ${typeName}{
+               return t.${value.discriminator.propertyName} === '${dKey}';
+            }`;
+          }
+        );
+        output += "\n";
+      });
+    return output;
+  }
+
+  const schemas = createTypes(propertyMapped);
 
   const responses = !schema.components.responses
     ? ``
-    : `responses: {
-    ${createKeys(
-      schema.components.responses,
-      Object.keys(schema.components.responses)
-    )}
-  }`;
+    : createTypes(schema.components.responses);
+
+  const discriminators = createDiscriminators(propertyMapped);
 
   // note: make sure that base-level schemas are required
-  return `export interface components {
+  return `
     ${schemas}
     ${responses}
-  }`;
+    ${discriminators}
+  `;
 }

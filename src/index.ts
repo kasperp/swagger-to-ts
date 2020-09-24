@@ -1,8 +1,7 @@
 import path from "path";
 import prettier from "prettier";
 import { swaggerVersion } from "./utils";
-import { OpenAPI2, OpenAPI3, SwaggerToTSOptions } from "./types";
-import v2 from "./v2";
+import { OpenAPI3, SwaggerToTSOptions } from "./types";
 import v3 from "./v3";
 
 export const WARNING_MESSAGE = `/**
@@ -14,21 +13,19 @@ export const WARNING_MESSAGE = `/**
 `;
 
 export default function swaggerToTS(
-  schema: OpenAPI2 | OpenAPI3,
+  schema: OpenAPI3,
   options?: SwaggerToTSOptions
 ): string {
   // generate types for V2 and V3
   const version = swaggerVersion(schema);
   let output = `${WARNING_MESSAGE}`;
   switch (version) {
-    case 2: {
-      output = output.concat(v2(schema as OpenAPI2, options));
-      break;
-    }
     case 3: {
       output = output.concat(v3(schema as OpenAPI3, options));
       break;
     }
+    default:
+      console.error(`❌ only OpenAPI3 is supported `);
   }
 
   // Prettify output

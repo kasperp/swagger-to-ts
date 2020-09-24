@@ -1,0 +1,271 @@
+openapi: 3.0.3
+info:
+  title: Packages API
+  version: 1.0.0
+  description: |
+    The Packages API lets you retrieve the contents of packages, such as its 
+    product models, their variables and values, and what languages are available.
+    This view of the data is independent of any configuration logic.
+  contact:
+    url: http://www.configit.com
+
+servers:
+  - url: "/packages/v1"
+    variables:
+      protocol:
+        enum:
+          - http
+          - https
+        default: https
+
+paths:
+  /package:
+    get:
+      operationId: GetPackage
+      tags:
+        - Package
+      summary: Get package contents
+      description: |
+        Gets the high-level contents of a package, including its product IDs, 
+        and its languages.
+      parameters:
+        - $ref: "#/components/parameters/packagePath"
+      responses:
+        "200":
+          description: "Successful request. Package contents included in the response."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PackageResponse"
+        default:
+          description: "An error occurred. Check the response body for details."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /product:
+    get:
+      operationId: GetProduct
+      tags:
+        - Product
+      summary: Get product contents
+      description: |
+        Gets a product's contents, including its variables and values.
+
+        This data is independent of configuration logic, such as rules or 
+        effectivity. As a result, the response may contain data unavailable at 
+        configuration time.
+      parameters:
+        - $ref: "#/components/parameters/packagePath"
+        - name: productId
+          in: query
+          required: true
+          description: |
+            The case-sensitive ID of the product to get the contents of.
+
+            To get the available product IDs in a package, call the 
+            `/package` endpoint.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Successful request. Product contents included in the response."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        default:
+          description: Failed operation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        type:
+          description: The error type.
+          type: string
+        message:
+          description: The error message.
+          type: string
+      required:
+        - type
+        - message
+
+    PackageResponse:
+      type: object
+      properties:
+        packagePath:
+          type: string
+          description: |
+            The `packagePath` from the request, or the latest versioned path of the package if no version was specified.
+        products:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+          description: The product IDs contained in the package.
+        languages:
+          type: array
+          items:
+            $ref: "#/components/schemas/Language"
+          description: The languages contained in the package.
+      required:
+        - packagePath
+        - products
+    ProductResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The ID of the requested product.
+        packagePath:
+          type: string
+          description: |
+            The `packagePath` from the request, or the latest versioned path of 
+            the package if no version was specified.
+        variables:
+          type: array
+          description: |
+            The collection of variables. Each variable has a `type` which determines
+            the properties available on the object.
+          items:
+            $ref: "#/components/schemas/Variable"
+      required:
+        - id
+        - packagePath
+        - variables
+    Variable:
+      type: object
+      discriminator:
+        propertyName: type
+        mapping:
+          string: "#/components/schemas/StringVariable"
+          number: "#/components/schemas/NumberVariable"
+          boolean: "#/components/schemas/BooleanVariable"
+          datetime: "#/components/schemas/DateTimeVariable"
+      properties:
+        type:
+          type: string
+          description: |
+            The variable type.
+          enum:
+            - string
+            - number
+            - boolean
+            - datetime
+        id:
+          type: string
+          description: The variable ID.
+      required:
+        - type
+        - id
+    BooleanVariable:
+      allOf:
+        - $ref: "#/components/schemas/Variable"
+    StringVariable:
+      allOf:
+        - $ref: "#/components/schemas/Variable"
+        - type: object
+          properties:
+            definedValues:
+              type: array
+              items:
+                type: string
+              description: |
+                A collection of strings representing the values that 
+                can be assigned to the variable during configuration.
+            multiValued:
+              type: boolean
+              description: |
+                Indicates whether multiple values can be assigned to the variable 
+                simultaneously during configuration.
+          required:
+            - id
+    NumberVariable:
+      allOf:
+        - $ref: "#/components/schemas/Variable"
+        - type: object
+          properties:
+            minValue:
+              type: string
+              description: |
+                Minimum value the number can be set to during configuration. 
+                This property is a string to support a higher precision than 
+                JavaScript allows.
+            maxValue:
+              type: string
+              description: |
+                Maximum value the number can be set to during configuration. 
+                This property is a string to support a higher precision than 
+                JavaScript allows.
+            scale:
+              type: number
+              description: The number of decimal places supported.
+          required:
+            - id
+            - minValue
+            - maxValue
+            - scale
+    DateTimeVariable:
+      allOf:
+        - $ref: "#/components/schemas/Variable"
+        - type: object
+          properties:
+            minValue:
+              type: string
+              format: date-time
+              description: |
+                Minimum value the date can be set to during configuration. 
+                Follows the ISO 8601 format.
+            maxValue:
+              type: string
+              format: date-time
+              description: |
+                Maximum value the date can be set to during configuration. 
+                Follows the ISO 8601 format.
+          required:
+            - id
+            - minValue
+            - maxValue
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The product ID.
+    Language:
+      type: object
+      properties:
+        id:
+          type: string
+          description: |
+            The language ID. Typically, this is an ISO 639-1 language code, 
+            though this is not enforced. For example, `EN` for English.
+        name:
+          type: string
+          description: The language name. For example, `English`.
+        default:
+          type: boolean
+          description: Indicates whether this is the default language.
+        fallback:
+          type: string
+          description: |
+            The ID of the fallback language used when translations are missing.
+  parameters:
+    packagePath:
+      name: packagePath
+      in: query
+      description: |
+        The case-sensitive path to the package.
+
+        For the latest visible version of a package, use the format 
+        `packagePath={path}`. For example, `packagePath=samples/ihear`. 
+
+        For a specific package version, use the format `packagePath={path}~{version}`.
+        For example, `packagePath=samples/ihear~8bd554bc-2dfa-41d0-b1bf-aec97dd81eca`.
+      required: true
+      schema:
+        type: string
